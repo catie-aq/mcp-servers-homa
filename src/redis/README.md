@@ -78,3 +78,14 @@ docker build -t mcp/redis -f src/redis/Dockerfile .
 ## License
 
 This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
+
+
+
+
+npm install -g typescript
+<!-- npm i --save-dev @types/node -->
+npm run build 
+npm run start 
+
+npm link
+npx mcp-redis-catie
