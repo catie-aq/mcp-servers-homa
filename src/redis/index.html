@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>WebSocket JSON client</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- PureCSS est facultatif, gardé ici en exemple -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/purecss@2.0.6/build/pure-min.css"
+        integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5"
+        crossorigin="anonymous">
+
+  <style>
+    body {
+      background-color: #fdf7e5;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    /* Un simple style pour mettre en évidence l’image sélectionnée */
+    .highlight {
+      border: 3px solid red;
+    }
+
+    /* Organisation de base en « grille » */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+
+    #images-container {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+    }
+
+    #images-container img {
+      width: 150px;
+      
+      object-fit: cover;
+    }
+
+    #json-log {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      min-height: 150px;
+      background-color: #fafafa;
+      font-family: monospace;
+      white-space: pre-wrap; /* Pour afficher sur plusieurs lignes */
+    }
+  </style>
+</head>
+<body>
+
+<h1>Client WebSocket JSON – Abonnement à "mcp-events"</h1>
+<div class="container">
+  <!-- Trois images placeholder (vous pouvez les remplacer par les vôtres) -->
+  <div id="images-container">
+    <img id="qwen"
+       src="public/qwen.png"
+       alt="qwen">
+    <img id="flux"
+       src="public/flux.png"
+       alt="flux">
+    <img id="trellis"
+       src="public/trellis.png"
+       alt="trellis">
+  </div>
+
+  <!-- Zone d’affichage de tous les messages reçus via WebSocket -->
+  <div id="json-log"></div>
+</div>
+
+<script>
+// Petit raccourci pour document.getElementById(...)
+const $ = (id) => document.getElementById(id);
+
+// Identifiants du serveur WebSocket (Webdis)
+const host = "localhost";
+const port = 7379;
+
+// WebSocket global
+let ws = null;
+
+/**
+ * Met en évidence l’image correspondant à l’événement reçu.
+ * On enlève la classe highlight partout, puis on la remet
+ * uniquement sur l’image liée à l’événement.
+ */
+function highlightImage(eventType) {
+  // Réinitialiser le highlight sur toutes les images
+  ["qwen", "flux", "trellis"].forEach((imgId) => {
+    $(imgId).classList.remove("highlight");
+  });
+
+  console.log("Highlighting image for event type:", eventType);
+  // Ajouter highlight sur l’image correspondante
+  if (eventType === "qwen") {
+
+    $("qwen").classList.add("highlight");
+  } else if (eventType === "flux") {
+    
+    // On met en évidence l’image "flux"
+    console.log("Flux image highlighted");
+    $("flux").classList.add("highlight");
+  } else if (eventType === "trellis") {
+    $("trellis").classList.add("highlight");
+  }
+}
+
+/**
+ * Fonction d’initialisation. On ouvre le WebSocket,
+ * on souscrit directement à "mcp-events" dès que la connexion est ouverte.
+ */
+function init() {
+  // Connexion WebSocket en JSON (le point devant "json" indique le format)
+  ws = new WebSocket(`ws://${host}:${port}/.json`);
+
+  // Quand la connexion est établie
+  ws.onopen = () => {
+    console.log("Connecté au serveur Webdis");
+    // On s'abonne automatiquement à "mcp-events"
+    ws.send(JSON.stringify(["SUBSCRIBE", "mcp-events"]));
+  };
+
+  // Quand un message est reçu
+  ws.onmessage = (messageEvent) => {
+    const data = messageEvent.data;
+    console.log("Message reçu :", data);
+
+    // On l’affiche dans le div #json-log
+    const logDiv = $("json-log");
+    logDiv.textContent += data + "\n";  // On rajoute le message brut
+
+    // On essaie de parser le JSON pour identifier l’événement
+    let parsed;
+    try {
+      parsed = JSON.parse(data);
+    } catch (e) {
+      console.error("Données non JSON, ou erreur de parsing :", e);
+      return;
+    }
+
+    // Exemple de message quand un publish arrive souvent sous la forme :
+    // ["message", "mcp-events", "ev1"]
+    if (parsed && parsed.SUBSCRIBE) {
+      const [msgType, channel, eventType] = parsed.SUBSCRIBE;
+
+      console.log("Type de message :", msgType, channel, eventType);
+      if (msgType === "message" && channel === "mcp-events") {
+        console.log("Événement reçu :", eventType, "sur le canal", channel);
+        highlightImage(eventType);
+      }
+    }
+  };
+
+  // Fermeture de la connexion (ex. si le serveur coupe)
+  ws.onclose = () => {
+    console.log("Déconnecté du serveur Webdis");
+  };
+}
+
+// Lancement au chargement du DOM
+window.addEventListener("DOMContentLoaded", init);
+</script>
+
+</body>
+</html>

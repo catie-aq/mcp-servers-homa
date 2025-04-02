@@ -23,6 +23,15 @@ services:
     #  - ./redis.conf:/usr/local/etc/redis/redis.conf
     #command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
+  web:
+    image: nginx:alpine
+    container_name: webserver
+    ports:
+      - "8080:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./public:/usr/share/nginx/html/public:ro
+
 networks:
   shared: 
   
